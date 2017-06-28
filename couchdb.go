@@ -140,6 +140,7 @@ type UserRecord struct {
 	Password string   `json:"password,omitempty"`
 	Roles    []string `json:"roles"`
 	TheType  string   `json:"type"` //apparently type is a keyword in Go :)
+
 }
 
 //Add a User.
@@ -211,7 +212,7 @@ auth Auth) (string, error) {
 	found := false
 	for i, r := range userRoles {
 		if r == role {
-			userRoles = append(userRoles[:i], userRoles[i + 1:]...)
+			userRoles = append(userRoles[:i], userRoles[i+1:]...)
 			found = true
 			break
 		}
@@ -679,7 +680,7 @@ func (db *Database) RemoveRole(role string) error {
 		roles := *rolesPtr
 		for i, r := range roles {
 			if r == role {
-				*rolesPtr = append(roles[:i], roles[i + 1:]...)
+				*rolesPtr = append(roles[:i], roles[i+1:]...)
 				return true
 			}
 		}
