@@ -25,7 +25,7 @@ type Database struct {
 //Creates a regular http connection.
 //Timeout sets the timeout for the http Client
 func NewConnection(address string, port int,
-	timeout time.Duration) (*Connection, error) {
+timeout time.Duration) (*Connection, error) {
 
 	url := "http://" + address + ":" + strconv.Itoa(port)
 	return createConnection(url, timeout)
@@ -34,7 +34,7 @@ func NewConnection(address string, port int,
 //Creates an https connection.
 //Timeout sets the timeout for the http Client
 func NewSSLConnection(address string, port int,
-	timeout time.Duration) (*Connection, error) {
+timeout time.Duration) (*Connection, error) {
 
 	url := "https://" + address + ":" + strconv.Itoa(port)
 	return createConnection(url, timeout)
@@ -103,7 +103,7 @@ func (conn *Connection) DeleteDB(name string, auth Auth) error {
 
 //Set a CouchDB configuration option
 func (conn *Connection) SetConfig(section string,
-	option string, value string, auth Auth) error {
+option string, value string, auth Auth) error {
 	url, err := buildUrl("_config", section, option)
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (conn *Connection) SetConfig(section string,
 
 //Gets a CouchDB configuration option
 func (conn *Connection) GetConfigOption(section string,
-	option string, auth Auth) (string, error) {
+option string, auth Auth) (string, error) {
 	url, err := buildUrl("_config", section, option)
 	if err != nil {
 		return "", err
@@ -140,7 +140,6 @@ type UserRecord struct {
 	Password string   `json:"password,omitempty"`
 	Roles    []string `json:"roles"`
 	TheType  string   `json:"type"` //apparently type is a keyword in Go :)
-
 }
 
 //Add a User.
@@ -148,7 +147,7 @@ type UserRecord struct {
 //If you need a User with custom fields, etc., you'll just have to use the
 //ordinary document methods on the "_users" database.
 func (conn *Connection) AddUser(username string, password string,
-	roles []string, auth Auth) (string, error) {
+roles []string, auth Auth) (string, error) {
 
 	userData := UserRecord{
 		Name:     username,
@@ -163,7 +162,7 @@ func (conn *Connection) AddUser(username string, password string,
 
 //Grants a role to a user
 func (conn *Connection) GrantRole(username string, role string,
-	auth Auth) (string, error) {
+auth Auth) (string, error) {
 	userDb := conn.SelectDB("_users", auth)
 	namestring := "org.couchdb.user:" + username
 	var userData interface{}
@@ -192,7 +191,7 @@ func (conn *Connection) GrantRole(username string, role string,
 
 //Revoke a user role
 func (conn *Connection) RevokeRole(username string, role string,
-	auth Auth) (string, error) {
+auth Auth) (string, error) {
 
 	userDb := conn.SelectDB("_users", auth)
 	namestring := "org.couchdb.user:" + username
@@ -212,7 +211,7 @@ func (conn *Connection) RevokeRole(username string, role string,
 	found := false
 	for i, r := range userRoles {
 		if r == role {
-			userRoles = append(userRoles[:i], userRoles[i+1:]...)
+			userRoles = append(userRoles[:i], userRoles[i + 1:]...)
 			found = true
 			break
 		}
@@ -244,7 +243,7 @@ type AuthInfoResponse struct {
 
 //Creates a session using the Couchdb session api.  Returns auth token on success
 func (conn *Connection) CreateSession(username string,
-	password string) (*CookieAuth, error) {
+password string) (*CookieAuth, error) {
 	sessUrl, err := buildUrl("_session")
 	if err != nil {
 		return &CookieAuth{}, err
@@ -308,7 +307,7 @@ func (conn *Connection) GetAuthInfo(auth Auth) (*AuthInfoResponse, error) {
 
 //Fetch a user record
 func (conn *Connection) GetUser(username string, userData interface{},
-	auth Auth) (string, error) {
+auth Auth) (string, error) {
 	userDb := conn.SelectDB("_users", auth)
 	namestring := "org.couchdb.user:" + username
 	return userDb.Read(namestring, &userData, nil)
@@ -342,13 +341,13 @@ func (db *Database) Compact() (resp string, e error) {
 
 	var headers = make(map[string]string)
 	headers["Accept"] = "application/json"
-    headers["Content-Type"] = "application/json"
+	headers["Content-Type"] = "application/json"
 
 	emtpyBody := ""
 
 	dbResponse, err := db.connection.request("POST", url, strings.NewReader(emtpyBody), headers, db.auth)
-    defer dbResponse.Body.Close()
-    
+	defer dbResponse.Body.Close()
+
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(dbResponse.Body)
 	strResp := buf.String()
@@ -506,8 +505,8 @@ func (db *Database) Delete(id string, rev string) (string, error) {
 //attType is the MIME type of the attachment (ex: image/jpeg) or some such.
 //attContent is a byte array containing the actual content.
 func (db *Database) SaveAttachment(docId string,
-	docRev string, attName string,
-	attType string, attContent io.Reader) (string, error) {
+docRev string, attName string,
+attType string, attContent io.Reader) (string, error) {
 	url, err := buildUrl(db.dbName, docId, attName)
 	if err != nil {
 		return "", err
@@ -530,7 +529,7 @@ func (db *Database) SaveAttachment(docId string,
 //Returns an io.Reader -- the onus is on the caller to close it.
 //Please close it.
 func (db *Database) GetAttachment(docId string, docRev string,
-	attType string, attName string) (io.ReadCloser, error) {
+attType string, attName string) (io.ReadCloser, error) {
 	url, err := buildUrl(db.dbName, docId, attName)
 	if err != nil {
 		return nil, err
@@ -549,7 +548,7 @@ func (db *Database) GetAttachment(docId string, docRev string,
 
 //Fetches an attachment and proxies the result
 func (db *Database) GetAttachmentByProxy(docId string, docRev string,
-	attType string, attName string, r *http.Request, w http.ResponseWriter) error {
+attType string, attName string, r *http.Request, w http.ResponseWriter) error {
 	path, err := buildUrl(db.dbName, docId, attName)
 	if err != nil {
 		return err
@@ -567,7 +566,7 @@ func (db *Database) GetAttachmentByProxy(docId string, docRev string,
 
 //Deletes an attachment
 func (db *Database) DeleteAttachment(docId string, docRev string,
-	attName string) (string, error) {
+attName string) (string, error) {
 	url, err := buildUrl(db.dbName, docId, attName)
 	if err != nil {
 		return "", err
@@ -680,7 +679,7 @@ func (db *Database) RemoveRole(role string) error {
 		roles := *rolesPtr
 		for i, r := range roles {
 			if r == role {
-				*rolesPtr = append(roles[:i], roles[i+1:]...)
+				*rolesPtr = append(roles[:i], roles[i + 1:]...)
 				return true
 			}
 		}
@@ -698,7 +697,7 @@ func (db *Database) RemoveRole(role string) error {
 
 //Get the results of a view.
 func (db *Database) GetView(designDoc string, view string,
-	results interface{}, params *url.Values) error {
+results interface{}, params *url.Values) error {
 	var err error
 	var url string
 	if params == nil {
@@ -727,7 +726,7 @@ func (db *Database) GetView(designDoc string, view string,
 
 //Get multiple results of a view.
 func (db *Database) GetMultipleFromView(designDoc string, view string,
-	results interface{}, keys []string) error {
+results interface{}, keys []string) error {
 	var err error
 	var url string
 	type RequestBody struct {
@@ -763,7 +762,7 @@ func (db *Database) GetMultipleFromView(designDoc string, view string,
 //Get the result of a list operation
 //This assumes your list function in couchdb returns JSON
 func (db *Database) GetList(designDoc string, list string,
-	view string, results interface{}, params *url.Values) error {
+view string, results interface{}, params *url.Values) error {
 	var err error
 	var url string
 	if params == nil {
@@ -790,10 +789,35 @@ func (db *Database) GetList(designDoc string, list string,
 	return nil
 }
 
+func (db *Database) Find(results interface{}, body []byte) error {
+	var err error
+	var url string
+	url, err = buildUrl(db.dbName, "_find")
+	if err != nil {
+		return err
+	}
+
+	var headers = make(map[string]string)
+	headers["Accept"] = "application/json"
+	headers["Content-Type"] = "application/json"
+	resp, err := db.connection.request("POST", url, bytes.NewBuffer(body), headers, db.auth)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	err = parseBody(resp, &results)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //Save a design document.
 //If creating a new design doc, set rev to "".
 func (db *Database) SaveDesignDoc(name string,
-	designDoc interface{}, rev string) (string, error) {
+designDoc interface{}, rev string) (string, error) {
 	path := "_design/" + name
 	newRev, err := db.Save(designDoc, path, rev)
 	if err != nil {
