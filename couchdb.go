@@ -348,7 +348,7 @@ func (db *Database) Compact() (resp string, e error) {
 
 	dbResponse, err := db.connection.request("POST", url, strings.NewReader(emtpyBody), headers, db.auth)
     defer dbResponse.Body.Close()
-    
+
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(dbResponse.Body)
 	strResp := buf.String()
@@ -474,6 +474,28 @@ func (db *Database) ReadMultiple(ids []string, results interface{}) error {
 	headers["Accept"] = "application/json"
 	if resp, err :=
 		db.connection.request("POST", url, requestBody,
+			headers, db.auth); err == nil {
+		defer resp.Body.Close()
+		return parseBody(resp, &results)
+	} else {
+		return err
+	}
+}
+
+//Fetches multiple documents in a single request given a range
+func (db *Database) ReadRange(startID string, endID string, results interface{}) error {
+	parameters := url.Values{}
+	parameters.Set("startkey", startID)
+	parameters.Set("endkey", endID)
+	parameters.Set("include_docs", "true")
+	url, err := buildParamUrl(parameters, db.dbName, "_all_docs")
+	if err != nil {
+		return err
+	}
+	var headers = make(map[string]string)
+	headers["Accept"] = "application/json"
+	if resp, err :=
+		db.connection.request("GET", url, nil,
 			headers, db.auth); err == nil {
 		defer resp.Body.Close()
 		return parseBody(resp, &results)
