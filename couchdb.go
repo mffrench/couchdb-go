@@ -749,17 +749,25 @@ func (db *Database) GetView(designDoc string, view string,
 
 //Get multiple results of a view.
 func (db *Database) GetMultipleFromView(designDoc string, view string,
-	results interface{}, keys []string) error {
+	results interface{}, keys []string, include_docs bool) error {
 	var err error
-	var url string
+	var url2 string
 	type RequestBody struct {
 		Keys []string `json:"keys"`
 	}
-	url, err = buildUrl(db.dbName, "_design", designDoc, "_view", view)
+	if include_docs {
+		parameters := url.Values{}
+		parameters.Set("include_docs", "true")
+		url2, err = buildParamUrl(parameters, db.dbName, "_design",
+			designDoc, "_view", view)
+	} else {
+		url2, err = buildUrl(db.dbName, "_design", designDoc, "_view", view)
+	}
+
 	if err != nil {
 		return err
 	}
-	fmt.Errorf("url: " + url)
+
 	var headers = make(map[string]string)
 	reqBody := RequestBody{Keys: keys}
 	requestBody, numBytes, err := encodeData(reqBody)
@@ -773,7 +781,7 @@ func (db *Database) GetMultipleFromView(designDoc string, view string,
 	}
 	headers["Accept"] = "application/json"
 	if resp, err :=
-		db.connection.request("POST", url, requestBody,
+		db.connection.request("POST", url2, requestBody,
 			headers, db.auth); err == nil {
 		defer resp.Body.Close()
 		return parseBody(resp, &results)
