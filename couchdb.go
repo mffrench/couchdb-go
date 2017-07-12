@@ -722,11 +722,11 @@ func (db *Database) RemoveRole(role string) error {
 func (db *Database) GetView(designDoc string, view string,
 	results interface{}, params *url.Values) error {
 	var err error
-	var url string
+	var urlQ string
 	if params == nil {
-		url, err = buildUrl(db.dbName, "_design", designDoc, "_view", view)
+		urlQ, err = buildUrl(db.dbName, "_design", designDoc, "_view", view)
 	} else {
-		url, err = buildParamUrl(*params, db.dbName, "_design",
+		urlQ, err = buildParamUrl(*params, db.dbName, "_design",
 			designDoc, "_view", view)
 	}
 	if err != nil {
@@ -734,7 +734,38 @@ func (db *Database) GetView(designDoc string, view string,
 	}
 	var headers = make(map[string]string)
 	headers["Accept"] = "application/json"
-	resp, err := db.connection.request("GET", url, nil, headers, db.auth)
+	resp, err := db.connection.request("GET", urlQ, nil, headers, db.auth)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	err = parseBody(resp, &results)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *Database) GetHttpOpaqueView(designDoc string, view string,
+	results interface{}, opaqueGetReqParam string) error {
+
+	var err error
+	scheme := strings.Split(db.connection.url, "://")[0]
+	method := "GET"
+	host := strings.Split(strings.Split(db.connection.url, "//")[1], "/")[0]
+	opaque := "//" + host + "/" + db.dbName + "/_design/" + designDoc + "/_view/" + view + "?" + opaqueGetReqParam
+
+	req, err := http.NewRequest(method, scheme + opaque, nil)
+	req.URL = &url.URL{
+		Scheme: scheme,
+		Host:   host,
+		Opaque: opaque,
+	}
+
+	var headers = make(map[string]string)
+	headers["Accept"] = "application/json"
+	resp, err := db.connection.httpRequest(req, headers, db.auth)
 	if err != nil {
 		return err
 	}
@@ -768,6 +799,7 @@ func (db *Database) GetMultipleFromView(designDoc string, view string,
 		return err
 	}
 
+	fmt.Errorf("url: " + url2)
 	var headers = make(map[string]string)
 	reqBody := RequestBody{Keys: keys}
 	requestBody, numBytes, err := encodeData(reqBody)

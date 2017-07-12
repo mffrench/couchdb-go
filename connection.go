@@ -40,6 +40,25 @@ func (conn *connection) request(method, path string,
 	return resp, err
 }
 
+//processes a request
+func (conn *connection) httpRequest(req *http.Request, headers map[string]string, auth Auth) (*http.Response, error) {
+	//set headers
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	if auth != nil {
+		auth.AddAuthHeaders(req)
+	}
+
+	resp, err := conn.processResponse(0, req)
+	if err == nil && resp != nil && auth != nil {
+		auth.UpdateAuth(resp)
+	}
+
+	return resp, err
+}
+
 //Returns a result from couchdb directly to a requesting client
 //Useful for downloading large files
 func (conn *connection) reverseProxyRequest(w http.ResponseWriter,
