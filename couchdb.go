@@ -778,6 +778,54 @@ func (db *Database) GetHttpOpaqueView(designDoc string, view string,
 	return nil
 }
 
+func (db *Database) GetMultipleHttpOpaqueView(designDoc string, view string,
+	results interface{}, opaqueGetReqParam string, keys []string) error {
+
+	var err error
+
+	type RequestBody struct {
+		Keys []string `json:"keys"`
+	}
+
+	scheme := strings.Split(db.connection.url, "://")[0]
+	method := "POST"
+	host := strings.Split(strings.Split(db.connection.url, "//")[1], "/")[0]
+	opaque := "//" + host + "/" + db.dbName + "/_design/" + designDoc + "/_view/" + view + "?" + opaqueGetReqParam
+
+
+	var headers = make(map[string]string)
+	reqBody := RequestBody{Keys: keys}
+	requestBody, numBytes, err := encodeData(reqBody)
+	if err != nil {
+		return err
+	}
+	headers["Content-Type"] = "application/json"
+	headers["Content-Length"] = strconv.Itoa(numBytes)
+	if numBytes > 4000 {
+		headers["Expect"] = "100-continue"
+	}
+	headers["Accept"] = "application/json"
+
+	req, err := http.NewRequest(method, scheme + opaque, requestBody)
+	req.URL = &url.URL{
+		Scheme: scheme,
+		Host:   host,
+		Opaque: opaque,
+	}
+
+	resp, err := db.connection.httpRequest(req, headers, db.auth)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	err = parseBody(resp, &results)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //Get multiple results of a view.
 func (db *Database) GetMultipleFromView(designDoc string, view string,
 	results interface{}, keys []string, include_docs bool) error {
@@ -812,9 +860,7 @@ func (db *Database) GetMultipleFromView(designDoc string, view string,
 		headers["Expect"] = "100-continue"
 	}
 	headers["Accept"] = "application/json"
-	if resp, err :=
-		db.connection.request("POST", url2, requestBody,
-			headers, db.auth); err == nil {
+	if resp, err := db.connection.request("POST", url2, requestBody, headers, db.auth); err == nil {
 		defer resp.Body.Close()
 		return parseBody(resp, &results)
 	} else {
