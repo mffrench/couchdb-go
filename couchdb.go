@@ -847,7 +847,6 @@ func (db *Database) GetMultipleFromView(designDoc string, view string,
 		return err
 	}
 
-	fmt.Errorf("url: " + url2)
 	var headers = make(map[string]string)
 	reqBody := RequestBody{Keys: keys}
 	requestBody, numBytes, err := encodeData(reqBody)
@@ -898,29 +897,30 @@ func (db *Database) GetList(designDoc string, list string,
 	return nil
 }
 
-func (db *Database) Find(results interface{}, body []byte) error {
+//TODO : change this horrible selectorJSONasString to a go struct
+func (db *Database) Find(results interface{}, selectorJSONasString string, skip int, limit int) error {
 	var err error
-	var url string
-	url, err = buildUrl(db.dbName, "_find")
+	var url2 string
+
+	url2, err = buildUrl(db.dbName, "_find")
 	if err != nil {
 		return err
 	}
 
-	var headers = make(map[string]string)
-	headers["Accept"] = "application/json"
+	req := "{\"selector\": " + selectorJSONasString +
+		", \"skip\": " + strconv.Itoa(skip) +
+		", \"limit\": " + strconv.Itoa(limit) + "}"
+	body := []byte(req)
+	headers := make(map[string]string)
 	headers["Content-Type"] = "application/json"
-	resp, err := db.connection.request("POST", url, bytes.NewBuffer(body), headers, db.auth)
-	if err != nil {
+	headers["Accept"] = "application/json"
+
+	if resp, err := db.connection.request("POST", url2, bytes.NewBuffer(body), headers, db.auth); err == nil {
+		defer resp.Body.Close()
+		return parseBody(resp, &results)
+	} else {
 		return err
 	}
-
-	defer resp.Body.Close()
-	err = parseBody(resp, &results)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 //Save a design document.
