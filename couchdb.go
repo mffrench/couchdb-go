@@ -398,6 +398,47 @@ func (db *Database) Save(doc interface{}, id string, rev string) (string, error)
 	return getRevInfo(resp)
 }
 
+type DocumentBulkUnitReq struct {
+	Id  string      `json:"_id"`
+	Rev string      `json:"_rev,omitempty"`
+	Doc interface{} `json:"doc"`
+}
+
+type DocumentBulkUnitResp struct {
+	Ok  bool   `json:"ok"`
+	Id  string `json:"id"`
+	Rev string `json:"rev"`
+}
+
+func (db *Database) SaveBulk(docs []DocumentBulkUnitReq, results *[]DocumentBulkUnitResp) (error) {
+	type RequestBody struct {
+		Docs []DocumentBulkUnitReq `json:"docs"`
+	}
+	saveBulkUrl, err := buildUrl(db.dbName, "_bulk_docs")
+	if err != nil {
+		return err
+	}
+	var headers = make(map[string]string)
+	reqBody := RequestBody{Docs: docs}
+	requestBody, numBytes, err := encodeData(reqBody)
+	if err != nil {
+		return err
+	}
+	headers["Content-Type"] = "application/json"
+	headers["Content-Length"] = strconv.Itoa(numBytes)
+	if numBytes > 4000 {
+		headers["Expect"] = "100-continue"
+	}
+	headers["Accept"] = "application/json"
+	if resp, err := db.connection.request("POST", saveBulkUrl, requestBody, headers, db.auth); err == nil {
+		defer resp.Body.Close()
+		return parseBody(resp, results)
+	} else {
+		return err
+	}
+	return nil
+}
+
 //Copies a document into a new... document.
 //Returns the revision of the newly created document
 func (db *Database) Copy(fromId string, fromRev string, toId string) (string, error) {
