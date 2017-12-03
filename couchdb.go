@@ -899,6 +899,7 @@ func (db *Database) GetMultipleFromView(designDoc string, view string,
 	}
 	if include_docs {
 		parameters := url.Values{}
+		parameters.Set("reduce", "false")
 		parameters.Set("include_docs", "true")
 		url2, err = buildParamUrl(parameters, db.dbName, "_design",
 			designDoc, "_view", view)
@@ -998,5 +999,4 @@ func (db *Database) SaveDesignDoc(name string,
 		return "", fmt.Errorf("CouchDB returned an empty revision string.")
 	}
 	return newRev, nil
-
 }
